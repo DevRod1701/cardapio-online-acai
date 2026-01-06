@@ -34,6 +34,9 @@
 
         .platform-btn { transition: all 0.2s; border: 1px solid #f3f4f6; }
         .platform-btn:hover { transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        
+        /* Estilo para opções de pagamento */
+        .pay-option input:checked + div { border-color: #7c3aed; background-color: #f5f3ff; color: #7c3aed; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -85,7 +88,7 @@
                 <h2 class="text-xl font-bold uppercase tracking-tight">Açaí Tradicional</h2>
             </div>
             <div class="space-y-3">
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex justify-between items-center">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex justify-between items-center group transition-all hover:border-purple-200">
                     <div>
                         <h3 class="font-bold text-gray-900 text-lg">Copo 300ml</h3>
                         <p class="text-xs text-gray-400">Escolha 4 complementos grátis.</p>
@@ -121,12 +124,12 @@
                 <div class="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 text-center">
                     <h3 class="font-bold text-orange-900 text-sm">Copo 300ml</h3>
                     <p class="text-orange-700 font-bold mb-3">R$ 22,99</p>
-                    <button onclick="openCustomizer('Salada 300ml', 22.99, 'salada')" class="w-full bg-white text-orange-600 py-3 rounded-2xl text-xs font-bold shadow-sm no-print">Personalizar</button>
+                    <button onclick="openCustomizer('Salada 300ml', 22.99, 'salada')" class="w-full bg-white text-orange-600 py-3 rounded-2xl text-xs font-bold shadow-sm no-print hover:bg-orange-600 hover:text-white transition-all">Personalizar</button>
                 </div>
                 <div class="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 text-center">
                     <h3 class="font-bold text-orange-900 text-sm">Copo 500ml</h3>
                     <p class="text-orange-700 font-bold mb-3">R$ 29,99</p>
-                    <button onclick="openCustomizer('Salada 500ml', 29.99, 'salada')" class="w-full bg-white text-orange-600 py-3 rounded-2xl text-xs font-bold shadow-sm no-print">Personalizar</button>
+                    <button onclick="openCustomizer('Salada 500ml', 29.99, 'salada')" class="w-full bg-white text-orange-600 py-3 rounded-2xl text-xs font-bold shadow-sm no-print hover:bg-orange-600 hover:text-white transition-all">Personalizar</button>
                 </div>
             </div>
         </section>
@@ -148,23 +151,6 @@
         <i data-lucide="printer" class="w-5 h-5"></i>
     </button>
 
-    <!-- Modais -->
-    <div id="modal-custom" class="modal no-print" onclick="closeModal('modal-custom', event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 id="modal-title" class="text-2xl font-black text-gray-900 tracking-tight">Personalizar</h2>
-                    <p id="modal-subtitle" class="text-sm text-gray-500 font-medium italic">Selecione até 4 grátis</p>
-                </div>
-                <button onclick="closeModal('modal-custom')" class="p-2 bg-gray-50 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div id="topping-options" class="space-y-2 mb-8"></div>
-            <button onclick="confirmToppings()" class="w-full bg-purple-600 text-white py-5 rounded-[1.5rem] font-bold text-lg shadow-lg active:scale-95 transition-transform">
-                Pronto, Adicionar!
-            </button>
-        </div>
-    </div>
-
     <!-- Modal de Checkout -->
     <div id="modal-checkout" class="modal no-print" onclick="closeModal('modal-checkout', event)">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -173,41 +159,73 @@
                 <button onclick="closeModal('modal-checkout')" class="p-2 bg-gray-50 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
-            <div class="space-y-4 mb-8">
-                <input type="text" id="cust-name" placeholder="Qual o seu nome?" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-purple-600 outline-none">
-                
-                <div class="grid grid-cols-3 gap-4">
-                    <div class="col-span-2 relative">
-                        <input type="text" id="cust-cep" placeholder="CEP (00000-000)" maxlength="9" onkeyup="handleCep(this)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-purple-600">
-                        <div id="cep-loading" class="absolute right-4 bottom-4 hidden"><div class="loading-spinner"></div></div>
-                    </div>
-                    <input type="text" id="cust-num" placeholder="Nº" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none">
-                </div>
-
-                <div id="address-box" class="hidden p-5 bg-purple-50 rounded-3xl border border-purple-100">
-                    <p id="full-address" class="text-sm text-purple-900 font-bold mb-1"></p>
-                    <div class="flex justify-between items-center border-t border-purple-200 pt-2 mt-2">
-                        <span class="text-[10px] text-purple-400 font-bold uppercase">Frete</span>
-                        <span id="fee-value" class="text-sm font-black text-purple-700">R$ 0,00</span>
-                    </div>
-                </div>
-
-                <!-- Mensagem Humanizada de Restrição -->
-                <div id="out-of-range" class="hidden p-6 bg-white rounded-[2.5rem] border-2 border-dashed border-gray-200 space-y-5 text-center">
-                    <div class="space-y-2">
-                        <p class="text-lg text-gray-900 font-black tracking-tight leading-tight">Poxa.. Não atendemos essa região . Mas não fique sem o seu açaí!</p>
-                        <p class="text-sm text-gray-500 font-medium">Que tal pedir pelos nossos parceiros? É rápido, prático e você garante sua delícia agora mesmo!</p>
-                    </div>
-                    
+            <div class="space-y-6 mb-8">
+                <!-- Dados de Entrega -->
+                <div class="space-y-3">
+                    <input type="text" id="cust-name" placeholder="Qual o seu nome?" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-purple-600 outline-none">
                     <div class="grid grid-cols-3 gap-4">
-                        <a href="https://www.ifood.com.br/delivery/sao-paulo-sp/acai-do-lucca-parque-cisper/1fd17658-98b4-4f9b-a154-20cf834d7ed3?utm_medium=share" target="_blank" class="platform-btn bg-white p-4 rounded-3xl flex items-center justify-center">
-                            <img src="./ifood.png" class="w-full h-10 object-contain" alt="iFood">
+                        <div class="col-span-2 relative">
+                            <input type="text" id="cust-cep" placeholder="CEP (00000-000)" maxlength="9" onkeyup="handleCep(this)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-purple-600">
+                            <div id="cep-loading" class="absolute right-4 top-4 hidden"><div class="loading-spinner"></div></div>
+                        </div>
+                        <input type="text" id="cust-num" placeholder="Nº" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none">
+                    </div>
+                    <div id="address-box" class="hidden p-5 bg-purple-50 rounded-3xl border border-purple-100">
+                        <p id="full-address" class="text-sm text-purple-900 font-bold mb-1"></p>
+                        <div class="flex justify-between items-center border-t border-purple-200 pt-2 mt-2">
+                            <span class="text-[10px] text-purple-400 font-bold uppercase">Frete</span>
+                            <span id="fee-value" class="text-sm font-black text-purple-700">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagamento -->
+                <div id="payment-section" class="space-y-4">
+                    <h3 class="text-xs font-bold uppercase text-gray-400 tracking-widest ml-2">Pagamento</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="pay-option cursor-pointer">
+                            <input type="radio" name="payment" value="PIX" class="hidden peer" onchange="toggleCashInput(false)">
+                            <div class="p-4 border border-gray-100 rounded-2xl text-center text-sm font-bold transition-all peer-checked:border-purple-600">PIX</div>
+                        </label>
+                        <label class="pay-option cursor-pointer">
+                            <input type="radio" name="payment" value="Dinheiro" class="hidden peer" onchange="toggleCashInput(true)">
+                            <div class="p-4 border border-gray-100 rounded-2xl text-center text-sm font-bold transition-all peer-checked:border-purple-600">Dinheiro</div>
+                        </label>
+                        <label class="pay-option cursor-pointer">
+                            <input type="radio" name="payment" value="Cartão de Débito" class="hidden peer" onchange="toggleCashInput(false)">
+                            <div class="p-4 border border-gray-100 rounded-2xl text-center text-sm font-bold transition-all peer-checked:border-purple-600">Débito</div>
+                        </label>
+                        <label class="pay-option cursor-pointer">
+                            <input type="radio" name="payment" value="Cartão de Crédito" class="hidden peer" onchange="toggleCashInput(false)">
+                            <div class="p-4 border border-gray-100 rounded-2xl text-center text-sm font-bold transition-all peer-checked:border-purple-600 text-xs">Crédito<br><span class="opacity-50 font-medium">Visa/Master/Elo</span></div>
+                        </label>
+                    </div>
+
+                    <!-- Troco -->
+                    <div id="cash-change-box" class="hidden space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <label class="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Troco para quanto?</label>
+                            <input type="number" id="cash-amount" placeholder="Ex: 50" oninput="calculateChange()" class="w-full bg-transparent font-bold text-lg outline-none">
+                        </div>
+                        <div id="change-result" class="hidden text-center p-3 bg-green-50 rounded-2xl border border-green-100">
+                            <span class="text-xs text-green-600 font-bold uppercase tracking-wider">Seu Troco: </span>
+                            <span id="change-value" class="text-base font-black text-green-700 ml-1">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parceiros (Fora de Área) -->
+                <div id="out-of-range" class="hidden p-6 bg-white rounded-[2.5rem] border-2 border-dashed border-gray-200 space-y-6 text-center">
+                    <p class="text-lg text-gray-900 font-black tracking-tight leading-tight">Não fique sem o seu açaí!</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <a href="https://www.ifood.com.br/delivery/sao-paulo-sp/acai-do-lucca-parque-cisper/1fd17658-98b4-4f9b-a154-20cf834d7ed3" target="_blank" class="platform-btn bg-white p-3 rounded-2xl flex items-center justify-center">
+                            <img src="./ifood.png" class="w-full h-12 object-contain" alt="iFood">
                         </a>
-                        <a href="https://url-eu.mykeeta.com/uCMXP3uz" target="_blank" class="platform-btn bg-white p-4 rounded-3xl flex items-center justify-center">
-                            <img src="/keeta.png" class="w-full h-10 object-contain" alt="Keeta">
+                        <a href="https://url-eu.mykeeta.com/uCMXP3uz" target="_blank" class="platform-btn bg-white p-3 rounded-2xl flex items-center justify-center">
+                            <img src="./keeta.png" class="w-full h-12 object-contain" alt="Keeta">
                         </a>
-                        <!--<a href="https://www.99food.com.br" target="_blank" class="platform-btn bg-white p-4 rounded-3xl flex items-center justify-center">
-                            <img src="./99.png" class="w-full h-10 object-contain" alt="99 Food"> -->
+                        <a href="https://www.99food.com.br" target="_blank" class="platform-btn bg-white p-3 rounded-2xl flex items-center justify-center">
+                            <img src="./99.png" class="w-full h-12 object-contain" alt="99 Food">
                         </a>
                     </div>
                 </div>
@@ -219,21 +237,23 @@
         </div>
     </div>
 
-    <!-- Barra de Carrinho -->
-    <div id="cart-bar" class="no-print cart-float fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-6 shadow-2xl z-50 rounded-t-[2.5rem]">
-        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
-            <div class="flex flex-col">
-                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Seu Total</span>
-                <span id="cart-total-bar" class="text-2xl font-black text-gray-900 tracking-tighter">R$ 0,00</span>
+    <!-- Modais de Apoio -->
+    <div id="modal-custom" class="modal no-print" onclick="closeModal('modal-custom', event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 id="modal-title" class="text-2xl font-black text-gray-900 tracking-tight">Personalizar</h2>
+                    <p id="modal-subtitle" class="text-sm text-gray-500 font-medium italic">Selecione até 4 grátis</p>
+                </div>
+                <button onclick="closeModal('modal-custom')" class="p-2 bg-gray-50 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <button onclick="openCart()" class="flex-1 bg-purple-900 text-white py-4 px-6 rounded-[1.25rem] font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-100">
-                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                Ver Pedido (<span id="cart-count">0</span>)
+            <div id="topping-options" class="space-y-2 mb-8"></div>
+            <button onclick="confirmToppings()" class="w-full bg-purple-600 text-white py-5 rounded-[1.5rem] font-bold text-lg shadow-lg active:scale-95 transition-transform">
+                Confirmar
             </button>
         </div>
     </div>
 
-    <!-- Modal de Revisão do Carrinho -->
     <div id="modal-cart" class="modal no-print" onclick="closeModal('modal-cart', event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-6">
@@ -241,18 +261,28 @@
                 <button onclick="closeModal('modal-cart')" class="p-2 bg-gray-50 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div id="cart-items-list" class="space-y-4 mb-8"></div>
-            <div class="sticky bottom-0 bg-white pt-4">
-                <button onclick="openCheckout()" class="w-full bg-purple-600 text-white py-5 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-purple-100">
-                    Continuar
-                </button>
-            </div>
+            <button onclick="openCheckout()" class="w-full bg-purple-600 text-white py-5 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-purple-100">
+                Continuar
+            </button>
         </div>
     </div>
 
-    <!-- Rodapé -->
+    <div id="cart-bar" class="no-print cart-float fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-6 shadow-2xl z-50 rounded-t-[2.5rem]">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex flex-col text-left">
+                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Total</span>
+                <span id="cart-total-bar" class="text-2xl font-black text-gray-900 tracking-tighter">R$ 0,00</span>
+            </div>
+            <button onclick="openCart()" class="flex-1 bg-purple-900 text-white py-4 px-6 rounded-[1.25rem] font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-100">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                Revisar (<span id="cart-count">0</span>)
+            </button>
+        </div>
+    </div>
+
     <footer class="bg-gray-100 text-center py-12 px-4 mt-10 no-print">
         <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Açaí do Lucca • Vila Cisper</p>
-        <p class="text-gray-400 text-[10px] mt-2 uppercase opacity-50 tracking-tight tracking-widest">Obrigado pela preferência!</p>
+        <p class="text-gray-400 text-[10px] mt-2 uppercase opacity-50 tracking-widest">Obrigado pela preferência!</p>
     </footer>
 
     <script>
@@ -317,7 +347,6 @@
                 let text = t.free && (freeCheckedCount < 4 || isChecked) ? "Grátis" : `+ R$ ${t.price.toFixed(2)}`;
                 let color = t.free && (freeCheckedCount < 4 || isChecked) ? "text-green-600" : "text-purple-600 font-bold";
                 if (t.free && freeCheckedCount >= 4 && !isChecked) { color = "text-red-500 font-bold"; }
-
                 return `
                     <label class="relative flex justify-between items-center p-5 rounded-3xl border border-gray-100 cursor-pointer transition-all hover:bg-gray-50">
                         <input type="checkbox" name="topping" value="${index}" ${isChecked ? 'checked' : ''} onchange="updateToppingSelection(this)" class="hidden peer">
@@ -326,7 +355,7 @@
                             <span class="font-bold text-gray-800">${t.name}</span>
                             <span class="text-[10px] uppercase tracking-widest ${color}">${text}</span>
                         </div>
-                        <div class="w-7 h-7 rounded-full border-2 border-gray-200 peer-checked:bg-purple-600 peer-checked:border-purple-600 flex items-center justify-center relative z-10 transition-all">
+                        <div class="w-7 h-7 rounded-full border-2 border-gray-200 peer-checked:bg-purple-600 peer-checked:border-purple-600 flex items-center justify-center relative z-10">
                              <i data-lucide="check" class="w-4 h-4 text-white"></i>
                         </div>
                     </label>
@@ -348,13 +377,11 @@
             let finalPrice = currentItem.basePrice;
             let freeSlotsUsed = 0;
             let chosen = [];
-
             currentItem.toppings.sort((a,b) => a - b).forEach(idx => {
                 const t = filteredToppings[idx];
                 if (t.free && freeSlotsUsed < 4) { freeSlotsUsed++; chosen.push(t.name); }
                 else { finalPrice += t.price; chosen.push(`${t.name} (+R$${t.price.toFixed(2)})`); }
             });
-
             cart.push({ id: Date.now(), name: currentItem.name, price: finalPrice, details: chosen.join(', ') });
             closeModal('modal-custom');
             updateCartUI();
@@ -381,9 +408,9 @@
                         <p class="text-[10px] text-gray-500 italic mt-1 leading-tight">${item.details}</p>
                         <span class="text-sm font-black text-purple-700 block mt-2">R$ ${item.price.toFixed(2)}</span>
                     </div>
-                    <button onclick="removeFromCart(${item.id})" class="text-red-400 p-2 hover:bg-red-50 rounded-full transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <button onclick="removeFromCart(${item.id})" class="text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                 </div>
-            `).join('') : '<p class="text-center text-gray-400 py-10 font-medium italic">O seu cesto está aguardando delícias...</p>';
+            `).join('') : '<p class="text-center text-gray-400 py-10 italic">Seu cesto está vazio...</p>';
             lucide.createIcons();
             document.getElementById('modal-cart').classList.add('active');
         }
@@ -419,12 +446,13 @@
         async function validateAddress(addr) {
             const outOfRange = document.getElementById('out-of-range');
             const btn = document.getElementById('btn-final-order');
+            const paymentSect = document.getElementById('payment-section');
             const feeDisplay = document.getElementById('fee-value');
             const cleanCep = addr.cep.replace(/\D/g, '');
 
-            // BLOQUEIO UNIVERSAL DE CEP/CIDADE
             if (EXCLUDED_CITIES.includes(addr.localidade.toLowerCase()) || cleanCep.startsWith(BLOCKED_PREFIX)) {
                 outOfRange.classList.remove('hidden');
+                paymentSect.classList.add('hidden');
                 btn.disabled = true;
                 btn.classList.add('opacity-50');
                 return;
@@ -438,39 +466,55 @@
                     const lat = parseFloat(results[0].lat);
                     const lon = parseFloat(results[0].lon);
                     const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lon, lat, lon);
-
                     if (distance > MAX_RADIUS_KM) {
                         outOfRange.classList.remove('hidden');
+                        paymentSect.classList.add('hidden');
                         btn.disabled = true;
                     } else {
                         if (distance <= 1) deliveryFee = 3.99;
                         else if (distance <= 2) deliveryFee = 4.99;
                         else deliveryFee = 5.99;
-
                         feeDisplay.innerText = `R$ ${deliveryFee.toFixed(2)}`;
                         outOfRange.classList.add('hidden');
+                        paymentSect.classList.remove('hidden');
                         btn.disabled = false;
                         btn.classList.remove('opacity-50');
                     }
                 }
-            } catch (e) {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50');
-            }
+            } catch (e) { btn.disabled = false; btn.classList.remove('opacity-50'); }
         }
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; 
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const dLat = (lat2-lat1)*Math.PI/180;
+            const dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function toggleCashInput(show) {
+            document.getElementById('cash-change-box').classList.toggle('hidden', !show);
+            if(!show) { document.getElementById('cash-amount').value = ''; document.getElementById('change-result').classList.add('hidden'); }
+        }
+
+        function calculateChange() {
+            const totalItems = cart.reduce((sum, item) => sum + item.price, 0);
+            const totalOrder = totalItems + deliveryFee;
+            const paid = parseFloat(document.getElementById('cash-amount').value) || 0;
+            const resBox = document.getElementById('change-result');
+            const valSpan = document.getElementById('change-value');
+            if (paid > totalOrder) {
+                valSpan.innerText = `R$ ${(paid-totalOrder).toFixed(2)}`;
+                resBox.classList.remove('hidden');
+            } else { resBox.classList.add('hidden'); }
         }
 
         function sendWhatsApp() {
             const name = document.getElementById('cust-name').value;
             const num = document.getElementById('cust-num').value;
-            if (!name || !num || !clientAddress) return;
+            const pay = document.querySelector('input[name="payment"]:checked')?.value;
+            const cash = document.getElementById('cash-amount').value;
+            if (!name || !num || !clientAddress || !pay) { alert("Preencha todos os dados e o pagamento!"); return; }
 
             let message = `*NOVO PEDIDO - AÇAÍ DO LUCCA*\n`;
             message += `==========================\n`;
@@ -487,21 +531,21 @@
                 totalItens += item.price;
             });
 
-            const finalTotal = totalItens + deliveryFee;
+            const total = totalItens + deliveryFee;
             message += `==========================\n`;
             message += `*Subtotal:* R$ ${totalItens.toFixed(2)}\n`;
             message += `*Entrega:* R$ ${deliveryFee.toFixed(2)}\n`;
-            message += `*TOTAL FINAL: R$ ${finalTotal.toFixed(2)}*\n\n`;
-            message += `Lucca, pode preparar que estou aguardando! 🚀🍨`;
-
+            message += `*TOTAL:* R$ ${total.toFixed(2)}\n\n`;
+            message += `*PAGAMENTO:* ${pay}\n`;
+            if (pay === 'Dinheiro' && cash) {
+                message += `*Pagar com:* R$ ${parseFloat(cash).toFixed(2)}\n`;
+                if(parseFloat(cash) > total) message += `*Troco:* R$ ${(parseFloat(cash)-total).toFixed(2)}\n`;
+            }
+            message += `\nLucca, pode preparar o meu! 🍨🚀`;
             window.open(`https://wa.me/5511988170539?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        function closeModal(id, e) {
-            if (e && e.target !== e.currentTarget) return;
-            document.getElementById(id).classList.remove('active');
-        }
-
+        function closeModal(id, e) { if (e && e.target !== e.currentTarget) return; document.getElementById(id).classList.remove('active'); }
         window.onload = init;
     </script>
 </body>
