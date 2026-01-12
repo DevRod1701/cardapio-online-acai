@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Animações e ajustes que o Tailwind padrão não faz sozinho */
+
+body {
+  font-family: 'Inter', sans-serif;
+  padding-bottom: 120px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3 {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Sombra específica dos cards (opcional, se quiser manter idêntico) */
+.card-shadow {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* Spinner de carregamento do CEP */
+.loading-spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #7c3aed;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Botões de Plataforma */
+.platform-btn {
+  transition: all 0.2s;
+  border: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.platform-btn:active {
+  transform: scale(0.95);
+}
+
+/* Animação do Carrinho subindo */
+.cart-float {
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cart-float.active {
+  transform: translateY(0);
+}
+
+/* Ajustes de Impressão */
+@media print {
+  @page { size: A4; margin: 1cm; }
+  .no-print { display: none !important; }
+  body { background: white !important; padding-bottom: 0; }
+  main { max-width: 100% !important; padding: 0 !important; }
+}
