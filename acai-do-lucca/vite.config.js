@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
+// vitejs.dev
 export default defineConfig({
   plugins: [react()],
+  base: '/cardapio-online-acai/', // <-- Esta linha é crucial
   esbuild: {
-    // Isso remove todos os consoles e debuggers na versão final
     drop: ['console', 'debugger'],
   },
 })

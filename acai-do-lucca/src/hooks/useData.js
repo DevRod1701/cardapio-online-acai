@@ -100,19 +100,38 @@ export function useData() {
   };
 
   // --- SALVAR DADOS GERAIS (Produtos, Itens, Listas) ---
+  // --- SALVAR DADOS (SEPARANDO CRIAR DE EDITAR) ---
   const saveData = async (table, data) => {
-    const payload = { ...data };
-    if (!payload.id) delete payload.id;
-    
-    const { error } = await supabase.from(table).upsert(payload);
-    
-    if (error) {
+    // Verifica se é edição (tem ID) ou criação (não tem ID)
+    if (data.id) {
+        // --- MODO EDIÇÃO (UPDATE) ---
+        const { error } = await supabase
+            .from(table)
+            .update(data)
+            .eq('id', data.id);
+            
+        if (error) {
+            console.error("Erro ao atualizar:", error);
+            alert("Erro ao atualizar item.");
+            return false;
+        }
+    } else {
+        // --- MODO CRIAÇÃO (INSERT) ---
+        const payload = { ...data };
+        delete payload.id; // Garante que não vai nenhum ID sujo (null, undefined, etc)
         
-        alert("Erro ao salvar no banco de dados.");
-        return false;
+        const { error } = await supabase
+            .from(table)
+            .insert(payload);
+
+        if (error) {
+            console.error("Erro ao criar:", error);
+            alert("Erro ao criar novo item.");
+            return false;
+        }
     }
     
-    await fetchData();
+    await fetchData(); // Recarrega a lista
     return true;
   };
 

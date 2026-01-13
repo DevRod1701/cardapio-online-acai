@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Heart, Citrus, Plus, X, ShoppingBag, Trash2, Check, Lock, MapPin, Grid, Phone, Info, Loader2 } from 'lucide-react';
+import { Star, Heart, Citrus, Plus, X, ShoppingBag, Trash2, Check, Lock, MapPin, Grid, Phone, Info, Loader2, IceCreamBowl } from 'lucide-react';
 import { useData } from '../hooks/useData';
 
 // --- CONFIGURAÇÃO ---
@@ -22,7 +22,7 @@ export default function Menu({ onGoToAdmin }) {
   // Estados Checkout
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [loadingPhone, setLoadingPhone] = useState(false); // Loading ao buscar telefone
+  const [loadingPhone, setLoadingPhone] = useState(false);
   const [cep, setCep] = useState('');
   const [num, setNum] = useState('');
   const [addressData, setAddressData] = useState(null);
@@ -35,17 +35,34 @@ export default function Menu({ onGoToAdmin }) {
   // --- LGPD ---
   const [saveDataConsent, setSaveDataConsent] = useState(true);
 
-  // --- CARRINHO ---
+  // --- MÁSCARAS E HANDLERS ---
+  const handleCashChange = (e) => {
+    let value = e.target.value.replace(/\D/g, "");
+    value = (Number(value) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    setCashAmount(value);
+  };
+
+  const handlePhoneChange = (e) => {
+    let value = e.target.value.replace(/\D/g, ''); 
+    if (value.length > 11) value = value.slice(0, 11); 
+    value = value.replace(/^(\d{2})(\d)/g, '($1) $2'); 
+    value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+    setCustomerPhone(value);
+  };
+
+  // --- CARRINHO (SILENCIOSO) ---
   const addToCartDirectly = (prod) => {
     if(!prod.available) return;
     setCart([...cart, { id: Date.now(), name: prod.name, price: prod.price, details: '' }]);
-    setShowCart(true);
+    // Adiciona sem abrir modal
   };
+
   const addToCartExtra = (item) => {
     if(!item.available) return;
     setCart([...cart, { id: Date.now(), name: item.name, price: item.price, details: 'Adicional Avulso' }]);
-    setShowCart(true);
+    // Adiciona sem abrir modal
   };
+
   const removeFromCart = (id) => {
     const newCart = cart.filter(item => item.id !== id);
     setCart(newCart);
@@ -59,11 +76,13 @@ export default function Menu({ onGoToAdmin }) {
     setSelectedToppings([]);
     setShowCustomizer(true);
   };
+
   const toggleTopping = (listId, item) => {
     const exists = selectedToppings.find(s => s.listId === listId && s.item.id === item.id);
     if(exists) setSelectedToppings(selectedToppings.filter(s => s !== exists));
     else setSelectedToppings([...selectedToppings, { listId, item }]);
   };
+
   const confirmCustomization = () => {
     let finalPrice = currentProduct.price;
     let detailsArray = [];
@@ -86,41 +105,26 @@ export default function Menu({ onGoToAdmin }) {
         });
     }
     setCart([...cart, { id: Date.now(), name: currentProduct.name, price: finalPrice, details: detailsArray.join(', ') }]);
+    
     setShowCustomizer(false);
-    setShowCart(true);
   };
 
   // --- INTELIGÊNCIA: BUSCAR DADOS PELO TELEFONE ---
   const handlePhoneBlur = async () => {
-    // 1. Limpa a máscara visual para buscar apenas números
     const cleanPhone = customerPhone.replace(/\D/g, '');
-    
-    
-
     if (cleanPhone.length >= 10) {
         setLoadingPhone(true);
-        
-        // Chama a função do useData
         const customer = await findCustomerByPhone(cleanPhone);
-        
         setLoadingPhone(false);
 
         if (customer) {
-            
-            
-            // Preenche os estados
             if (customer.name) setCustomerName(customer.name);
             if (customer.address_number) setNum(customer.address_number);
-            
             if (customer.address_cep) {
-                // Preenche o CEP e força a busca do endereço
-                setCep(customer.address_cep); 
-                // Chamamos o handleCep simulando um evento para ele buscar a rua/bairro
+                const maskedCep = customer.address_cep.replace(/^(\d{5})(\d)/, '$1-$2');
+                setCep(maskedCep);
                 handleCep({ target: { value: customer.address_cep } });
             }
-            alert(`Olá ${customer.name}! Seus dados foram carregados.`);
-        } else {
-           
         }
     }
   };
@@ -136,22 +140,13 @@ export default function Menu({ onGoToAdmin }) {
   };
 
   const handleCep = async (e) => {
-    // 1. Pega apenas os números para lógica
     const rawValue = e.target.value.replace(/\D/g, '');
-    
-    // 2. Aplica a máscara visual (00000-000)
     let formattedValue = rawValue;
-    if (rawValue.length > 5) {
-        formattedValue = rawValue.replace(/^(\d{5})(\d)/, '$1-$2');
-    }
-    
-    // 3. Atualiza o visual
-    setCep(formattedValue); 
-    
-    // Reseta estados
+    if (rawValue.length > 5) formattedValue = rawValue.replace(/^(\d{5})(\d)/, '$1-$2');
+    setCep(formattedValue);
+
     setOutOfRange(false); setAddressData(null); setDeliveryFee(0);
 
-    // 4. Se tiver 8 números, dispara a busca na API
     if (rawValue.length === 8) {
       setLoadingCep(true);
       try {
@@ -176,27 +171,9 @@ export default function Menu({ onGoToAdmin }) {
             if (dist <= 1) setDeliveryFee(3.99); else if (dist <= 2) setDeliveryFee(4.99); else setDeliveryFee(5.99);
         }
       } catch (err) { 
-          // alert("CEP não encontrado."); // Opcional: comentar para não incomodar enquanto digita
+          // Silencioso
       } finally { setLoadingCep(false); }
     }
-  };
-
-  const handleCashChange = (e) => {
-    let value = e.target.value.replace(/\D/g, "");
-    value = (Number(value) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    setCashAmount(value);
-  };
-
-  // --- MÁSCARA TELEFONE (XX) XXXXX-XXXX ---
-  const handlePhoneChange = (e) => {
-    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
-    if (value.length > 11) value = value.slice(0, 11); // Limita tamanho
-
-    // Aplica a máscara progressivamente
-    value = value.replace(/^(\d{2})(\d)/g, '($1) $2'); 
-    value = value.replace(/(\d)(\d{4})$/, '$1-$2');
-
-    setCustomerPhone(value);
   };
 
   const showTerms = (e) => {
@@ -207,19 +184,22 @@ export default function Menu({ onGoToAdmin }) {
   const sendWhatsApp = async () => {
     if (!customerName || !customerPhone || !num || !addressData || !paymentMethod || outOfRange) return alert("Preencha todos os campos!");
     
-    // 1. CRM: SALVAR NO BANCO (Se permitido)
     if (saveDataConsent) {
         await saveCustomer({
             name: customerName,
             phone: customerPhone,
-            address_cep: cep,
+            address_cep: cep.replace(/\D/g, ''),
             address_number: num,
             address_full: `${addressData.logradouro}, ${addressData.bairro}`
         });
     }
 
-    // 2. WHATSAPP
-    let msg = `*NOVO PEDIDO - AÇAÍ DO LUCCA*\nCliente: ${customerName}\nTel: ${customerPhone}\nEnd: ${addressData.logradouro}, ${num} - ${addressData.bairro}\n\n`;
+    let msg = `*NOVO PEDIDO - AÇAÍ DO LUCCA*\n`;
+     
+    msg += `Cliente: ${customerName}\n`;
+    msg += `Tel: ${customerPhone}\n`;
+    msg += `End: ${addressData.logradouro}, ${num} - ${addressData.bairro}\n\n`;
+    
     let totalItems = 0;
     cart.forEach((i, idx) => {
       msg += `${idx+1}. *${i.name}*\n${i.details ? `Obs: ${i.details}\n` : ''}R$ ${i.price.toFixed(2)}\n\n`;
@@ -230,7 +210,6 @@ export default function Menu({ onGoToAdmin }) {
     
     window.open(`https://wa.me/5511988170539?text=${encodeURIComponent(msg)}`, '_blank');
 
-    // 3. LIMPEZA
     setShowCheckout(false); setShowCart(false); setCart([]);
     setCustomerName(''); setCustomerPhone(''); setCep(''); setNum(''); setPaymentMethod(''); setCashAmount('');
   };
@@ -296,17 +275,41 @@ export default function Menu({ onGoToAdmin }) {
         </section>
       </main>
 
+      <div className="text-gray-700 text-[10px] flex items-center justify-center gap-1 w-full"><IceCreamBowl className="text-purple-600" size={20} /> Açaí do Lucca ®  - Todos os Direitos Reservados - 2026</div>
+
       <footer className="text-center py-6 mb-20"><button onClick={onGoToAdmin} className="text-gray-300 text-[10px] flex items-center justify-center gap-1 w-full"><Lock size={10}/> Área do Gerente</button></footer>
 
-      {/* --- CART BAR --- */}
+      {/* --- CART BAR COM RESUMO VISÍVEL --- */}
       {cart.length > 0 && !showCart && !showCheckout && !showCustomizer && (
-        <div onClick={() => setShowCart(true)} className="fixed bottom-6 left-6 right-6 bg-purple-900 text-white p-4 rounded-3xl shadow-2xl flex justify-between items-center z-40 cursor-pointer active:scale-95 transition-transform animate-bounce-slight">
-            <div className="flex items-center gap-3"><div className="bg-white/20 p-2 rounded-full"><ShoppingBag size={20} /></div><div><p className="text-xs font-medium text-purple-200">Total</p><p className="font-bold text-lg">R$ {cartTotal.toFixed(2)}</p></div></div>
-            <div className="bg-white text-purple-900 px-4 py-2 rounded-xl text-xs font-bold">Ver Carrinho ({cart.length})</div>
+        <div 
+            onClick={() => setShowCart(true)} 
+            className="fixed bottom-6 left-4 right-4 bg-purple-900 text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between z-50 cursor-pointer animate-in slide-in-from-bottom-4 duration-300"
+        >
+            <div className="flex items-center gap-3 overflow-hidden flex-1 mr-2">
+                <div className="bg-white/20 p-2.5 rounded-full shrink-0">
+                    <ShoppingBag size={20} className="text-white" />
+                </div>
+                
+                <div className="flex flex-col overflow-hidden justify-center">
+                    <p className="text-[10px] text-purple-200 truncate font-medium max-w-[150px] sm:max-w-xs leading-tight">
+                        {cart.map(i => i.name).join(', ')}
+                    </p>
+                    <p className="font-bold text-lg leading-none mt-0.5">
+                        R$ {cartTotal.toFixed(2)}
+                    </p>
+                </div>
+            </div>
+
+            <div className="bg-white text-purple-900 px-3 py-2 rounded-xl text-xs font-bold shrink-0 shadow-lg shadow-purple-900/50 flex items-center gap-1">
+                Ver Carrinho
+                <span className="bg-purple-600 text-white px-1.5 py-0.5 rounded-md text-[10px] ml-1">
+                    {cart.length}
+                </span>
+            </div>
         </div>
       )}
 
-      {/* --- CUSTOMIZER --- */}
+      {/* --- CUSTOMIZER MODAL --- */}
       {showCustomizer && currentProduct && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm" onClick={() => setShowCustomizer(false)}>
            <div className="bg-white w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-[2.5rem] sm:rounded-[2rem] p-6 relative" onClick={e => e.stopPropagation()}>
@@ -383,15 +386,14 @@ export default function Menu({ onGoToAdmin }) {
             <div className="bg-white w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-[2.5rem] sm:rounded-[2rem] p-6 relative" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Entrega</h2><button onClick={() => setShowCheckout(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
                 <div className="space-y-4 mb-8">
-                    
-                    <div className="relative">
+                  <div className="relative">
                         <input 
                             className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-purple-100" 
-                            placeholder="(11) 99999-9999" // Placeholder atualizado
+                            placeholder="(11) 99999-9999" 
                             type="tel" 
-                            maxLength="15" // Limite visual da máscara
+                            maxLength="15"
                             value={customerPhone} 
-                            onChange={handlePhoneChange} // <--- USE A NOVA FUNÇÃO AQUI
+                            onChange={handlePhoneChange}
                             onBlur={handlePhoneBlur}
                         />
                         {loadingPhone && <div className="absolute right-4 top-4 animate-spin"><Loader2 className="text-purple-600"/></div>}
@@ -400,56 +402,21 @@ export default function Menu({ onGoToAdmin }) {
                     <div>
                         <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-purple-100" placeholder="Seu Nome" value={customerName} onChange={e => setCustomerName(e.target.value)} />
                     </div>
+                    
                     <div className="flex gap-3">
-                        <div className="relative w-2/3"><input 
-                                  className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-purple-100" 
-                                  placeholder="00000-000" // Placeholder atualizado
-                                  maxLength="9" // 8 números + 1 hífen
-                                  value={cep} 
-                                  onChange={handleCep} // A função já foi atualizada acima
-                              />{loadingCep && <div className="absolute right-4 top-4 animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>}</div>
+                        <div className="relative w-2/3"><input className="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-purple-100" placeholder="00000-000" maxLength="9" value={cep} onChange={handleCep} />{loadingCep && <div className="absolute right-4 top-4 animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>}</div>
                         <input className="w-1/3 p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-purple-100" placeholder="Nº" value={num} onChange={e => setNum(e.target.value)} />
                     </div>
                     
                     {outOfRange ? (
-                    <div className="p-6 bg-red-50 rounded-[2rem] border border-red-100 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                        <div className="space-y-1">
-                          <h4 className="font-black text-red-400 text-lg">
-                            Ainda não chegamos aí 😔
-                          </h4>
-
-                          <p className="text-gray-600 text-sm leading-relaxed">
-                            Mas seu açaí chega! 🍧
-                          </p>
-
-                          <p className="text-gray-500 text-xs">
-                            Escolha um parceiro abaixo e peça agora 👇
-                          </p>
+                        <div className="p-6 bg-red-50 rounded-[2rem] border border-red-100 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                            <div><h4 className="font-black text-red-500 text-lg">Fora da área 😔</h4><p className="text-gray-500 text-xs mt-1">Peça pelos nossos parceiros:</p></div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <a href="https://www.ifood.com.br/delivery/sao-paulo-sp/acai-do-lucca-parque-cisper/1fd17658-98b4-4f9b-a154-20cf834d7ed3" className="bg-white p-3 rounded-2xl shadow-sm border border-red-100 flex items-center justify-center"><img src="/ifood.png" className="w-full h-8 object-contain"/></a>
+                                <a href="https://url-eu.mykeeta.com/uCMXP3uz" className="bg-white p-3 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-center"><img src="/keeta.png" className="w-full h-8 object-contain"/></a>
+                                <a href="https://oia.99app.com/dlp9/TEjllm" className="bg-white p-3 rounded-2xl shadow-sm border border-yellow-100 flex items-center justify-center"><img src="/99.png" className="w-full h-8 object-contain"/></a>
+                            </div>
                         </div>
-
-                        <div className="grid grid-cols-3 gap-3">
-                          <a
-                            href="https://www.ifood.com.br/delivery/sao-paulo-sp/acai-do-lucca-parque-cisper/1fd17658-98b4-4f9b-a154-20cf834d7ed3"
-                            className="bg-white p-3 rounded-2xl shadow-sm border border-red-100 flex items-center justify-center hover:scale-105 transition"
-                          >
-                            <img src="/ifood.png" className="w-full h-8 object-contain" />
-                          </a>
-
-                          <a
-                            href="https://url-eu.mykeeta.com/uCMXP3uz"
-                            className="bg-white p-3 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-center hover:scale-105 transition"
-                          >
-                            <img src="/keeta.png" className="w-full h-8 object-contain" />
-                          </a>
-
-                          <a
-                            href="https://oia.99app.com/dlp9/TEjllm"
-                            className="bg-white p-3 rounded-2xl shadow-sm border border-yellow-100 flex items-center justify-center hover:scale-105 transition"
-                          >
-                            <img src="/99.png" className="w-full h-8 object-contain" />
-                          </a>
-                        </div>
-                      </div>                        
                     ) : ( addressData && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
                                 <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-start gap-3"><MapPin className="text-purple-600 shrink-0 mt-1" size={18} /><div><p className="font-bold text-sm text-purple-900">{addressData.logradouro}, {addressData.bairro}</p><p className="text-xs text-purple-600 mt-1">Frete: <strong>R$ {deliveryFee.toFixed(2)}</strong></p></div></div>
@@ -459,7 +426,6 @@ export default function Menu({ onGoToAdmin }) {
                                 </div>
                                 {paymentMethod === 'Dinheiro' && <input className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold text-lg text-purple-900 placeholder-gray-300" placeholder="Troco para R$..." value={cashAmount} onChange={handleCashChange} type="text" />}
                                 
-                                {/* --- LGPD CHECKBOX --- */}
                                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 mt-2">
                                     <div className="flex items-start gap-3">
                                         <input type="checkbox" checked={saveDataConsent} onChange={e => setSaveDataConsent(e.target.checked)} className="mt-1 w-5 h-5 accent-purple-600 cursor-pointer shrink-0" id="lgpd-check"/>

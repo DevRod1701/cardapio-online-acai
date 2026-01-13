@@ -138,7 +138,12 @@ export default function Admin({ onBack }) {
                        <p className="text-xs text-gray-400">
                            {activeTab === 'products' && `R$ ${entry.price?.toFixed(2)}`}
                            {activeTab === 'items' && (entry.free ? 'Grátis' : `R$ ${entry.price?.toFixed(2)}`)}
-                           {activeTab === 'lists' && `${entry.item_ids?.length || 0} itens`}
+                           {activeTab === 'lists' && (
+                               <span className="flex flex-col">
+                                   <span>{entry.item_ids?.length || 0} itens</span>
+                                   <span className="text-purple-600 font-bold text-[10px]">Até {entry.max_free} Grátis</span>
+                               </span>
+                           )}
                        </p>
                        {activeTab === 'products' && (
                            <span className="inline-block mt-1 text-[10px] bg-gray-100 px-2 rounded-full text-gray-500">{entry.category}</span>
@@ -212,7 +217,15 @@ export default function Admin({ onBack }) {
 
       {/* MODAL (REUTILIZADO) */}
       {isModalOpen && (
-         <ModalForm type={activeTab} data={editingData} close={() => setIsModalOpen(false)} save={handleSave} isSaving={isSaving} context={{ items, lists, categories }} />
+         <ModalForm 
+            key={editingData ? editingData.id : 'new'} 
+            type={activeTab} 
+            data={editingData} 
+            close={() => setIsModalOpen(false)} 
+            save={handleSave} 
+            isSaving={isSaving} 
+            context={{ items, lists, categories }} 
+         />
       )}
     </div>
   );
@@ -281,8 +294,43 @@ function ModalForm({ type, data, close, save, isSaving, context }) {
                         </>
                     )}
 
+                    {/* --- AQUI ESTÁ A CORREÇÃO PARA AS LISTAS --- */}
                     {type === 'lists' && (
-                        <div className="border-t pt-4"><label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Itens da Lista</label><div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">{context.items.map(i => (<div key={i.id} onClick={() => toggleArray('item_ids', i.id)} className={`p-2 border rounded-lg cursor-pointer flex items-center gap-2 ${form.item_ids?.includes(i.id) ? 'bg-purple-50 border-purple-400' : ''}`}><img src={i.image} className="w-6 h-6 rounded object-cover"/><span className="text-xs font-bold truncate">{i.name}</span></div>))}</div></div>
+                        <>
+                            {/* Campo Novo: Quantidade Grátis */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-400 uppercase">Quantos itens Grátis?</label>
+                                <div className="flex items-center gap-3">
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        value={form.max_free || 0} 
+                                        onChange={e => setForm({...form, max_free: parseInt(e.target.value)})} 
+                                        className="w-24 p-3 bg-gray-50 rounded-xl border-gray-100 border outline-none font-bold text-center" 
+                                    />
+                                    <span className="text-xs text-gray-400 leading-tight">
+                                        Defina quantos itens o cliente ganha. <br/>
+                                        Ex: 2 = "Escolha 2 Frutas Grátis".
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="border-t pt-4 mt-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Itens desta Lista</label>
+                                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                                    {context.items.map(i => (
+                                        <div key={i.id} onClick={() => toggleArray('item_ids', i.id)} className={`p-2 border rounded-lg cursor-pointer flex items-center gap-2 ${form.item_ids?.includes(i.id) ? 'bg-purple-50 border-purple-400 ring-1 ring-purple-400' : 'hover:bg-gray-50'}`}>
+                                            <img src={i.image} className="w-8 h-8 rounded object-cover bg-gray-100"/>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-xs font-bold truncate text-gray-800">{i.name}</p>
+                                                <p className="text-[10px] text-gray-400 font-medium">R$ {i.price.toFixed(2)}</p>
+                                            </div>
+                                            {form.item_ids?.includes(i.id) && <Check size={14} className="text-purple-600"/>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
                     )}
                     
                     {type === 'items' && (
