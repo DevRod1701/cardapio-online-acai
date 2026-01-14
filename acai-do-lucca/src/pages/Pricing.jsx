@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { 
     ArrowLeft, Plus, Trash2, Edit3, Save, Search, 
     Calculator, DollarSign, Package, PieChart, Info, 
-    Settings, X, ShoppingBag, Store, Tag, ChevronRight, Upload
+    Settings, X, ShoppingBag, Store, Tag, ChevronRight, Upload,
+    List, Coins // Adicionei ícones para o menu mobile
 } from 'lucide-react';
 import { useData } from '../hooks/useData';
 
 export default function Pricing({ onBack }) {
   const { supplies, recipes, channels, saveData, deleteData, refreshData } = useData();
   
+  // --- NAVEGAÇÃO MOBILE (NOVO) ---
+  const [mobileTab, setMobileTab] = useState('supplies'); // 'supplies', 'recipe', 'results'
+
   // --- CONTROLE DE MODAIS ---
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const [isSupplyModalOpen, setIsSupplyModalOpen] = useState(false);
-  const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false); // <--- NOVO MODAL
+  const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false); 
 
   const [editingSupply, setEditingSupply] = useState(null);
 
@@ -72,7 +76,8 @@ export default function Pricing({ onBack }) {
       setItems(recipe.ingredients);
       setProfitMarginPercent(recipe.profit_percent);
       setOperationalCostPercent(recipe.operational_percent || 30);
-      setIsRecipeModalOpen(false); // Fecha o modal ao carregar
+      setIsRecipeModalOpen(false); 
+      setMobileTab('recipe'); // Vai para a aba de montagem no mobile
   };
 
   const handleSaveRecipe = async () => {
@@ -90,7 +95,6 @@ export default function Pricing({ onBack }) {
       const success = await saveData('recipes', payload);
       if(success) {
           alert("Ficha técnica salva com sucesso!");
-          // Limpar a tela para nova ficha
           setRecipeName('');
           setRecipeId(null);
           setItems([]);
@@ -120,34 +124,45 @@ export default function Pricing({ onBack }) {
   });
   const categories = ['Todos', ...new Set(supplies.map(s => s.category || 'Geral'))];
 
-  const addSupplyToRecipe = (supply) => { setItems([...items, { ...supply, usedAmount: 0 }]); };
+  const addSupplyToRecipe = (supply) => { 
+      setItems([...items, { ...supply, usedAmount: 0 }]); 
+      // Opcional: setMobileTab('recipe'); // Se quiser que pule de aba ao clicar
+  };
   const updateAmount = (index, val) => { const newItems = [...items]; newItems[index].usedAmount = parseFloat(val) || 0; setItems(newItems); };
   const removeRecipeItem = (index) => { setItems(items.filter((_, i) => i !== index)); };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
         {/* HEADER */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shrink-0 z-20">
+        <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 flex justify-between items-center shrink-0 z-20">
             <div className="flex items-center gap-3">
                 <button onClick={onBack} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20}/></button>
                 <div>
                     <h1 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-                        <Calculator className="text-purple-600" size={20}/> Calculadora
+                        <Calculator className="text-purple-600" size={20}/> 
+                        <span className="hidden sm:inline">Calculadora</span>
+                        <span className="sm:hidden">Calc</span>
                     </h1>
                 </div>
             </div>
             <div className="flex gap-2">
-                <button onClick={() => setIsChannelModalOpen(true)} className="px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-lg hover:bg-black flex items-center gap-2"><Settings size={14}/> Taxas</button>
-                {/* BOTÃO AGORA ABRE MODAL */}
-                <button onClick={() => setIsRecipeModalOpen(true)} className="px-4 py-2 bg-purple-50 text-purple-700 text-xs font-bold rounded-lg hover:bg-purple-100 flex items-center gap-2"><Package size={14}/> Fichas</button>
+                <button onClick={() => setIsChannelModalOpen(true)} className="px-3 py-2 bg-gray-900 text-white text-[10px] sm:text-xs font-bold rounded-lg hover:bg-black flex items-center gap-2"><Settings size={14}/> Taxas</button>
+                <button onClick={() => setIsRecipeModalOpen(true)} className="px-3 py-2 bg-purple-50 text-purple-700 text-[10px] sm:text-xs font-bold rounded-lg hover:bg-purple-100 flex items-center gap-2"><Package size={14}/> Fichas</button>
             </div>
         </header>
 
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* --- MOBILE TABS (SÓ APARECE NO CELULAR) --- */}
+        <div className="md:hidden flex bg-white border-b border-gray-200 shrink-0">
+            <button onClick={() => setMobileTab('supplies')} className={`flex-1 py-3 text-xs font-bold border-b-2 ${mobileTab === 'supplies' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-400'}`}><List size={16} className="mx-auto mb-1"/> Insumos</button>
+            <button onClick={() => setMobileTab('recipe')} className={`flex-1 py-3 text-xs font-bold border-b-2 relative ${mobileTab === 'recipe' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-400'}`}><Package size={16} className="mx-auto mb-1"/> Montagem {items.length > 0 && <span className="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full"></span>}</button>
+            <button onClick={() => setMobileTab('results')} className={`flex-1 py-3 text-xs font-bold border-b-2 ${mobileTab === 'results' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-400'}`}><Coins size={16} className="mx-auto mb-1"/> Lucro</button>
+        </div>
+
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
             
-            {/* COLUNA 1: INSUMOS */}
-            <div className="w-full md:w-1/4 bg-white border-r border-gray-200 flex flex-col z-10">
-                <div className="p-4 border-b border-gray-100 space-y-3">
+            {/* COLUNA 1: INSUMOS (Mobile: Só aparece se aba=supplies / Desktop: Sempre aparece) */}
+            <div className={`w-full md:w-1/4 bg-white border-r border-gray-200 flex-col z-10 ${mobileTab === 'supplies' ? 'flex' : 'hidden md:flex'}`}>
+                <div className="p-4 border-b border-gray-100 space-y-3 shrink-0">
                     <button onClick={() => { setEditingSupply(null); setIsSupplyModalOpen(true); }} className="w-full bg-green-600 text-white py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-green-700 transition-colors">
                         <Plus size={16}/> Novo Insumo
                     </button>
@@ -161,9 +176,9 @@ export default function Pricing({ onBack }) {
                         ))}
                     </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                <div className="flex-1 overflow-y-auto p-2 space-y-2 pb-20 md:pb-2">
                     {filteredSupplies.map(s => (
-                        <div key={s.id} onClick={() => addSupplyToRecipe(s)} className="p-3 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50 cursor-pointer group relative">
+                        <div key={s.id} onClick={() => addSupplyToRecipe(s)} className="p-3 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50 cursor-pointer group relative active:scale-95 transition-transform">
                             <div className="flex justify-between items-start pr-12">
                                 <h4 className="font-bold text-sm text-gray-700">{s.name}</h4>
                             </div>
@@ -171,7 +186,7 @@ export default function Pricing({ onBack }) {
                                 <span>{s.category || 'Geral'}</span>
                                 <span>R$ {(s.price/s.amount).toFixed(4)}/{s.unit}</span>
                             </div>
-                            <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute right-2 top-2 flex flex-col gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                 <button onClick={(e) => { e.stopPropagation(); setEditingSupply(s); setIsSupplyModalOpen(true); }} className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"><Edit3 size={12}/></button>
                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteSupply(s.id); }} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><Trash2 size={12}/></button>
                             </div>
@@ -180,18 +195,21 @@ export default function Pricing({ onBack }) {
                 </div>
             </div>
 
-            {/* COLUNA 2: MONTAGEM */}
-            <div className="flex-1 bg-gray-50 flex flex-col overflow-y-auto">
-                <div className="p-6 max-w-2xl mx-auto w-full space-y-6">
+            {/* COLUNA 2: MONTAGEM (Mobile: Só aparece se aba=recipe / Desktop: Sempre aparece) */}
+            <div className={`flex-1 bg-gray-50 flex-col overflow-y-auto ${mobileTab === 'recipe' ? 'flex' : 'hidden md:flex'}`}>
+                <div className="p-4 md:p-6 max-w-2xl mx-auto w-full space-y-6 pb-20 md:pb-6">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
                         <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Nome do Produto</label>
-                        <input value={recipeName} onChange={e => setRecipeName(e.target.value)} placeholder="Ex: Açaí 500ml Completo" className="w-full text-xl font-black text-gray-800 outline-none placeholder-gray-300"/>
+                        <input value={recipeName} onChange={e => setRecipeName(e.target.value)} placeholder="Ex: Açaí 500ml Completo" className="w-full text-lg md:text-xl font-black text-gray-800 outline-none placeholder-gray-300"/>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 min-h-[300px]">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200 min-h-[300px]">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide"><Package size={16} className="text-purple-600"/> Composição</h3>
                         {items.length === 0 ? (
-                            <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-xl"><p className="text-gray-400 text-sm">Clique nos insumos à esquerda para adicionar.</p></div>
+                            <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-xl">
+                                <p className="text-gray-400 text-sm">Clique nos insumos à esquerda para adicionar.</p>
+                                <button onClick={() => setMobileTab('supplies')} className="md:hidden mt-2 text-purple-600 font-bold text-sm underline">Ir para Insumos</button>
+                            </div>
                         ) : (
                             <div className="space-y-3">
                                 {items.map((item, idx) => {
@@ -219,8 +237,8 @@ export default function Pricing({ onBack }) {
                 </div>
             </div>
 
-            {/* COLUNA 3: RESULTADOS */}
-            <div className="w-full md:w-[380px] bg-white border-l border-gray-200 flex flex-col overflow-y-auto">
+            {/* COLUNA 3: RESULTADOS (Mobile: Só aparece se aba=results / Desktop: Sempre aparece) */}
+            <div className={`w-full md:w-[380px] bg-white border-l border-gray-200 flex-col overflow-y-auto ${mobileTab === 'results' ? 'flex' : 'hidden md:flex'}`}>
                 <div className="p-6 bg-purple-900 text-white pb-10">
                     <h2 className="font-bold flex items-center gap-2 mb-6"><PieChart size={18} className="text-green-400"/> Configuração de Lucro</h2>
                     <div className="space-y-4">
@@ -235,7 +253,7 @@ export default function Pricing({ onBack }) {
                     </div>
                 </div>
 
-                <div className="flex-1 p-4 -mt-6 space-y-4">
+                <div className="flex-1 p-4 -mt-6 space-y-4 pb-20 md:pb-4">
                     {results.map((res, idx) => (
                         <div key={idx} className={`bg-white p-4 rounded-xl shadow-lg border relative overflow-hidden group ${res.name.includes('iFood') ? 'border-red-100' : 'border-gray-100'}`}>
                             <div className={`absolute top-0 left-0 w-1 h-full ${res.color || 'bg-gray-200'}`}></div>

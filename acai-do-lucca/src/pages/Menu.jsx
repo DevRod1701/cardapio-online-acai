@@ -242,7 +242,7 @@ export default function Menu({ onGoToAdmin }) {
                         {prods.map(p => (
                             <div key={p.id} onClick={() => !p.available ? null : (p.list_ids?.length ? openCustomizer(p) : addToCartDirectly(p))} className={`bg-white p-4 rounded-[2rem] shadow-sm border border-gray-100 cursor-pointer transition-all active:scale-95 flex gap-4 ${!p.available ? 'opacity-60 grayscale' : ''}`}>
                                 <div className="relative w-20 h-20 shrink-0">
-                                    <img src={p.image} className="w-full h-full rounded-2xl object-cover bg-gray-100" />
+                                    <img src={p.image || 'https://placehold.co/400?text=Sem+Foto'} className="w-full h-full rounded-2xl object-cover bg-gray-100" />
                                     {!p.available && <span className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-2xl text-[10px] font-bold text-white">ESGOTADO</span>}
                                 </div>
                                 <div className="flex-1 flex flex-col justify-center">
@@ -268,7 +268,7 @@ export default function Menu({ onGoToAdmin }) {
                 {allItems.map(t => (
                     <div key={t.id} className={`p-4 flex justify-between items-center ${!t.available ? 'opacity-50 grayscale' : ''}`}>
                         <div className="flex items-center gap-3 text-left">
-                            <img src={t.image} className="w-12 h-12 rounded-xl object-cover border border-gray-100" />
+                            <img src={t.image || 'https://placehold.co/100?text=Item'} className="w-12 h-12 rounded-xl object-cover border border-gray-100" />
                             <div><p className="font-bold text-sm text-gray-700">{t.name}</p><p className="text-[10px] text-gray-400">{!t.available ? 'Indisponível' : `R$ ${t.price.toFixed(2)}`}</p></div>
                         </div>
                         <button disabled={!t.available} onClick={() => addToCartExtra(t)} className="w-9 h-9 rounded-xl bg-green-50 text-green-600 flex items-center justify-center disabled:bg-gray-100 disabled:text-gray-400"><Plus size={16} /></button>
@@ -342,7 +342,7 @@ export default function Menu({ onGoToAdmin }) {
                                     return (
                                         <label key={item.id} className={`flex items-center p-3 rounded-2xl border cursor-pointer transition-all ${isSelected ? 'border-purple-600 bg-purple-50 ring-1 ring-purple-600' : 'border-gray-100 hover:bg-gray-50'}`}>
                                             <input type="checkbox" checked={isSelected} onChange={() => toggleTopping(list.id, item)} className="hidden" />
-                                            <img src={item.image} className="w-10 h-10 rounded-lg mr-3 object-cover bg-gray-200"/>
+                                            <img src={item.image || 'https://placehold.co/100?text=Item'} className="w-10 h-10 rounded-lg mr-3 object-cover bg-gray-200"/>
                                             <div className="flex-1"><p className="font-bold text-sm text-gray-800">{item.name}</p><p className={`text-[10px] uppercase tracking-widest ${priceColor}`}>{priceLabel}</p></div>
                                             {isSelected && <div className="bg-purple-600 text-white rounded-full p-1"><Check size={12}/></div>}
                                         </label>
