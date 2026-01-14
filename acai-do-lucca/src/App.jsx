@@ -1,39 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Menu from './pages/Menu';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
-import Pricing from './pages/Pricing'; // Importe a nova página
+import Pricing from './pages/Pricing';
 import { useData } from './hooks/useData';
 
 function App() {
   const { user } = useData();
-  const [currentPage, setCurrentPage] = useState('menu'); 
+  
+  // Flag para saber se a navegação foi feita por um botão do site (INTERNA)
+  const isInternalNav = useRef(false);
 
+  // Lê a URL inicial
+  const [currentPage, setCurrentPage] = useState(() => {
+      const hash = window.location.hash.replace('#', '');
+      return hash || 'menu';
+  });
+
+  // --- 1. ROTEADOR (Ouve mudanças na URL) ---
   useEffect(() => {
-    // Se está no login e logou, vai pro Admin
-    if (user && currentPage === 'login') {
-        setCurrentPage('admin');
+    const handleHashChange = () => {
+        const hash = window.location.hash.replace('#', '');
+        setCurrentPage(hash || 'menu');
+        
+        // Resetamos a flag após a troca de página ter ocorrido
+        isInternalNav.current = false;
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // --- 2. TRAVA DE SAÍDA (Apenas no Menu) ---
+  useEffect(() => {
+    if (currentPage === 'menu') {
+        // Empurramos um estado 'trap' para o histórico
+        // Isso cria uma "barreira" para o botão voltar
+        if (window.history.state?.page !== 'menu_trap') {
+            window.history.pushState({ page: 'menu_trap' }, '', '#menu');
+        }
+
+        const handleBackAttempt = (e) => {
+            // SE FOI NAVEGAÇÃO INTERNA (BOTÃO), IGNORA A TRAVA
+            if (isInternalNav.current) return;
+
+            // Se foi botão VOLTAR do celular/navegador:
+            // O navegador tentou voltar, então consumiu nosso estado 'trap'.
+            // Mostramos a confirmação.
+            const confirmExit = window.confirm("Deseja sair do aplicativo?");
+            
+            if (!confirmExit) {
+                // Se CANCELAR: Restauramos a barreira para proteger de novo
+                window.history.pushState({ page: 'menu_trap' }, '', '#menu');
+            } else {
+                // Se CONFIRMAR: Voltamos mais uma vez para sair de verdade (ir pro Google)
+                window.history.go(-1); 
+            }
+        };
+
+        window.addEventListener('popstate', handleBackAttempt);
+        return () => window.removeEventListener('popstate', handleBackAttempt);
     }
-  }, [user, currentPage]);
+  }, [currentPage]);
+
+
+  // --- FUNÇÃO DE NAVEGAÇÃO SEGURA (USAR NOS BOTÕES) ---
+  const navigateTo = (page) => {
+      // 1. Avisa o sistema que isso é uma navegação permitida (botão)
+      isInternalNav.current = true;
+      
+      // 2. Muda a URL (o roteador vai capturar isso)
+      window.location.hash = page;
+  };
 
   const handleGoToAdmin = () => {
       if (user) {
-          setCurrentPage('admin');
+          navigateTo('admin');
       } else {
-          setCurrentPage('login');
+          navigateTo('login');
       }
   };
 
+  // Se deslogar, força voltar pro menu
+  useEffect(() => {
+      if (!user && (currentPage === 'admin' || currentPage === 'pricing')) {
+          navigateTo('menu');
+      }
+  }, [user]);
+
   return (
     <div>
-      {currentPage === 'menu' && <Menu onGoToAdmin={handleGoToAdmin} />}
-      {currentPage === 'login' && <Login onBack={() => setCurrentPage('menu')} onLoginSuccess={() => setCurrentPage('admin')} />}
+      {currentPage === 'menu' && (
+          <Menu onGoToAdmin={handleGoToAdmin} />
+      )}
       
-      {/* Aqui passamos a função onNavigate para o Admin poder trocar de tela */}
-      {currentPage === 'admin' && <Admin onBack={() => setCurrentPage('menu')} onNavigate={setCurrentPage} />}
+      {currentPage === 'login' && (
+          <Login 
+            onBack={() => navigateTo('menu')} 
+            onLoginSuccess={() => navigateTo('admin')} 
+          />
+      )}
       
-      {/* Nova Página de Precificação */}
-      {currentPage === 'pricing' && <Pricing onBack={() => setCurrentPage('admin')} />}
+      {currentPage === 'admin' && (
+          <Admin 
+            onBack={() => navigateTo('menu')} 
+            onNavigate={navigateTo} 
+          />
+      )}
+      
+      {currentPage === 'pricing' && (
+          <Pricing 
+            onBack={() => navigateTo('admin')} 
+          />
+      )}
     </div>
   );
 }
