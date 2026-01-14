@@ -412,9 +412,9 @@ export default function Menu({ onGoToAdmin }) {
                         <div className="p-6 bg-red-50 rounded-[2rem] border border-red-100 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4">
                             <div><h4 className="font-black text-red-500 text-lg">Fora da área 😔</h4><p className="text-gray-500 text-xs mt-1">Peça pelos nossos parceiros:</p></div>
                             <div className="grid grid-cols-3 gap-3">
-                                <a href="https://www.ifood.com.br/delivery/sao-paulo-sp/acai-do-lucca-parque-cisper/1fd17658-98b4-4f9b-a154-20cf834d7ed3" className="bg-white p-3 rounded-2xl shadow-sm border border-red-100 flex items-center justify-center"><img src="/ifood.png" className="w-full h-8 object-contain"/></a>
-                                <a href="https://url-eu.mykeeta.com/uCMXP3uz" className="bg-white p-3 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-center"><img src="/keeta.png" className="w-full h-8 object-contain"/></a>
-                                <a href="https://oia.99app.com/dlp9/TEjllm" className="bg-white p-3 rounded-2xl shadow-sm border border-yellow-100 flex items-center justify-center"><img src="/99.png" className="w-full h-8 object-contain"/></a>
+                                <a href="https://www.ifood.com.br/delivery/sao-paulo-sp/acai-do-lucca-parque-cisper/1fd17658-98b4-4f9b-a154-20cf834d7ed3" className="bg-white p-3 rounded-2xl shadow-sm border border-red-100 flex items-center justify-center"><img src="public/ifood.png" className="w-full h-8 object-contain"/></a>
+                                <a href="https://url-eu.mykeeta.com/uCMXP3uz" className="bg-white p-3 rounded-2xl shadow-sm border border-orange-100 flex items-center justify-center"><img src="public/keeta.png" className="w-full h-8 object-contain"/></a>
+                                <a href="https://oia.99app.com/dlp9/TEjllm" className="bg-white p-3 rounded-2xl shadow-sm border border-yellow-100 flex items-center justify-center"><img src="public/99.png" className="w-full h-8 object-contain"/></a>
                             </div>
                         </div>
                     ) : ( addressData && (
