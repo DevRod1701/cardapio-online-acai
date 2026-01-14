@@ -9,6 +9,9 @@ export function useData() {
   const [customers, setCustomers] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null); 
+  const [supplies, setSupplies] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [channels, setChannels] = useState([]);
 
   // --- BUSCA DADOS ---
   const fetchData = async () => {
@@ -18,6 +21,14 @@ export function useData() {
       const { data: dLists } = await supabase.from('lists').select('*').order('name');
       const { data: dProds } = await supabase.from('products').select('*');
       const { data: dCats } = await supabase.from('categories').select('*').order('sort_order');
+      const { data: dSupplies } = await supabase.from('supplies').select('*').order('name');
+      if (dSupplies) setSupplies(dSupplies);
+      const { data: dRecipes } = await supabase.from('recipes').select('*').order('name');
+      if (dRecipes) setRecipes(dRecipes);
+      const { data: dChannels } = await supabase.from('sales_channels').select('*').order('id');
+      if (dChannels) setChannels(dChannels);
+      
+      
       
       // Busca clientes apenas se estiver logado
       const { data: { session } } = await supabase.auth.getSession();
@@ -193,7 +204,7 @@ export function useData() {
   };
 
   return { 
-    items, lists, products, categories, customers, user, loading, 
+    items, lists, products, categories, customers, supplies, recipes, channels, user, loading, 
     saveData, deleteData, uploadImage, saveCustomer, findCustomerByPhone, login, logout, refreshData: fetchData 
   };
 }
