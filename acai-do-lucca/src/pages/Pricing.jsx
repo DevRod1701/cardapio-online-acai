@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
     ArrowLeft, Plus, Trash2, Edit3, Save, Search, 
-    Calculator, DollarSign, Package, PieChart, Info, 
-    Settings, X, ShoppingBag, Store, Tag, ChevronRight, Upload,
-    List, Coins, ToggleLeft, ToggleRight, RotateCcw 
+    Calculator, Package, PieChart, 
+    Settings, X, Upload,
+    List, Coins, ToggleLeft, ToggleRight, RotateCcw, Eraser,
+    AlertTriangle, CheckCircle 
 } from 'lucide-react';
 import { useData } from '../hooks/useData';
 
@@ -18,6 +19,9 @@ export default function Pricing({ onBack }) {
   const [isSupplyModalOpen, setIsSupplyModalOpen] = useState(false);
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false); 
 
+  // --- NOVO: CONTROLE DE DIÁLOGOS (SUBSTITUI ALERT/CONFIRM) ---
+  const [dialog, setDialog] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
+
   const [editingSupply, setEditingSupply] = useState(null);
 
   // --- ESTADOS DA CALCULADORA ---
@@ -28,14 +32,25 @@ export default function Pricing({ onBack }) {
   const [operationalCostPercent, setOperationalCostPercent] = useState(30);
   const [profitMarginPercent, setProfitMarginPercent] = useState(20);
   
-  // O PADRÃO AGORA É TRUE (LUCRO FIXO)
   const [useFixedProfit, setUseFixedProfit] = useState(true); 
-  
-  // Preços Manuais
   const [manualPrices, setManualPrices] = useState({});
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todos');
+
+  // --- HELPER PARA MOSTRAR DIÁLOGOS ---
+  const showDialog = (type, title, message, onConfirm = null) => {
+      setDialog({ isOpen: true, type, title, message, onConfirm });
+  };
+
+  const closeDialog = () => {
+      setDialog({ ...dialog, isOpen: false });
+  };
+
+  const handleDialogConfirm = () => {
+      if (dialog.onConfirm) dialog.onConfirm();
+      closeDialog();
+  };
 
   // --- CÁLCULOS ---
   const calculateFinancials = () => {
@@ -50,7 +65,6 @@ export default function Pricing({ onBack }) {
       let basePrice = 0;
       let targetProfitMoney = 0;
 
-      // Se estiver no modo PADRÃO (Lucro Fixo), calculamos a base (Balcão)
       if (useFixedProfit) {
           const baseChannel = channels.find(c => 
               c.name.toLowerCase().includes('balcão') || 
@@ -59,20 +73,20 @@ export default function Pricing({ onBack }) {
               c.name.toLowerCase().includes('própria')
           ) || channels[0];
 
-          const baseTotalVars = parseFloat(baseChannel.commission_percent) + parseFloat(baseChannel.payment_fee_percent) + parseFloat(operationalCostPercent) + parseFloat(profitMarginPercent);
-          const baseTotalFixed = cmv + parseFloat(baseChannel.fixed_fee);
-          const baseDivisor = 1 - (Math.min(baseTotalVars, 95) / 100);
-          basePrice = baseTotalFixed / baseDivisor;
-          targetProfitMoney = basePrice * (profitMarginPercent / 100);
+          if (baseChannel) {
+              const baseTotalVars = parseFloat(baseChannel.commission_percent) + parseFloat(baseChannel.payment_fee_percent) + parseFloat(operationalCostPercent) + parseFloat(profitMarginPercent);
+              const baseTotalFixed = cmv + parseFloat(baseChannel.fixed_fee);
+              const baseDivisor = 1 - (Math.min(baseTotalVars, 95) / 100);
+              basePrice = baseTotalFixed / baseDivisor;
+              targetProfitMoney = basePrice * (profitMarginPercent / 100);
+          }
       }
 
       const results = channels.map(channel => {
           let autoPrice = 0;
           
           if (useFixedProfit) {
-             // LÓGICA PADRÃO: LUCRO FIXO NOMINAL (R$)
              const isBase = (channel.name.toLowerCase().includes('balcão') || channel.name.toLowerCase().includes('balcao') || channel.name.toLowerCase().includes('propria') || channel.name.toLowerCase().includes('própria'));
-             
              if (isBase) {
                  autoPrice = basePrice;
              } else {
@@ -81,20 +95,16 @@ export default function Pricing({ onBack }) {
                  const divisor = 1 - (Math.min(variableTaxPercent, 95) / 100);
                  autoPrice = numerator / divisor;
              }
-
           } else {
-             // LÓGICA ALTERNATIVA: CÁLCULO COMPLETO (%)
              const totalVariablePercent = parseFloat(channel.commission_percent) + parseFloat(channel.payment_fee_percent) + parseFloat(operationalCostPercent) + parseFloat(profitMarginPercent);
              const totalFixedCost = cmv + parseFloat(channel.fixed_fee);
              const divisor = 1 - (Math.min(totalVariablePercent, 95) / 100);
              autoPrice = totalFixedCost / divisor;
           }
 
-          // Só permite override se estiver no modo COMPLETO (useFixedProfit = false)
           const hasManualPrice = !useFixedProfit && manualPrices[channel.id] !== undefined && manualPrices[channel.id] !== '';
           const finalPrice = hasManualPrice ? parseFloat(manualPrices[channel.id]) : autoPrice;
 
-          // Cálculo Reverso do Lucro Real
           const variableFees = finalPrice * ((channel.commission_percent + channel.payment_fee_percent) / 100);
           const fixedFees = parseFloat(channel.fixed_fee);
           const operationalCost = finalPrice * (operationalCostPercent / 100);
@@ -132,10 +142,21 @@ export default function Pricing({ onBack }) {
       setManualPrices(newPrices);
   };
 
+  // LIMPAR CALCULADORA
+  const handleClearCalculator = () => {
+      if (items.length === 0) return;
+      showDialog('confirm', 'Limpar Simulação?', 'Deseja apagar todos os itens e começar do zero?', () => {
+          setRecipeName('');
+          setRecipeId(null);
+          setItems([]);
+          setManualPrices({});
+      });
+  };
+
   const loadRecipe = (recipe) => {
       setRecipeId(recipe.id);
       setRecipeName(recipe.name);
-      setItems(recipe.ingredients);
+      setItems(recipe.ingredients || []);
       setProfitMarginPercent(recipe.profit_percent);
       setOperationalCostPercent(recipe.operational_percent || 30);
       setManualPrices({});
@@ -144,8 +165,8 @@ export default function Pricing({ onBack }) {
   };
 
   const handleSaveRecipe = async () => {
-      if(!recipeName) return alert("Dê um nome para o produto!");
-      if(items.length === 0) return alert("Adicione ingredientes!");
+      if(!recipeName) return showDialog('alert', 'Atenção', 'Dê um nome para o produto antes de salvar!');
+      if(items.length === 0) return showDialog('alert', 'Atenção', 'Adicione pelo menos um ingrediente!');
 
       const payload = {
           name: recipeName,
@@ -157,24 +178,32 @@ export default function Pricing({ onBack }) {
       
       const success = await saveData('recipes', payload);
       if(success) {
-          alert("Salvo!");
-          setRecipeName('');
-          setRecipeId(null);
-          setItems([]);
-          setManualPrices({});
+          showDialog('alert', 'Sucesso', 'Ficha técnica salva com sucesso!');
       }
   };
 
-  const handleDeleteRecipe = async (id) => { if(window.confirm("Apagar?")) await deleteData('recipes', id); };
+  const handleDeleteRecipe = (id) => { 
+      showDialog('confirm', 'Excluir Ficha?', 'Essa ação não pode ser desfeita.', async () => {
+          await deleteData('recipes', id);
+      });
+  };
+
   const handleSaveSupply = async (data) => { await saveData('supplies', data); setIsSupplyModalOpen(false); setEditingSupply(null); };
-  const handleDeleteSupply = async (id) => { if(window.confirm("Excluir?")) await deleteData('supplies', id); };
+  
+  const handleDeleteSupply = (id) => { 
+      showDialog('confirm', 'Excluir Insumo?', 'Tem certeza que deseja apagar este ingrediente?', async () => {
+          await deleteData('supplies', id);
+      });
+  };
 
   const filteredSupplies = supplies.filter(s => {
       const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCat = filterCategory === 'Todos' || s.category === filterCategory;
       return matchesSearch && matchesCat;
   });
-  const categories = ['Todos', ...new Set(supplies.map(s => s.category || 'Geral'))];
+  
+  const uniqueCategories = [...new Set(supplies.map(s => s.category || 'Geral'))];
+  const categories = ['Todos', ...uniqueCategories];
 
   const addSupplyToRecipe = (supply) => { setItems([...items, { ...supply, usedAmount: 0 }]); };
   const updateAmount = (index, val) => { const newItems = [...items]; newItems[index].usedAmount = parseFloat(val) || 0; setItems(newItems); };
@@ -183,16 +212,12 @@ export default function Pricing({ onBack }) {
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden fixed inset-0">
         
-        {/* CSS GLOBAL PARA REMOVER SETAS DOS INPUTS NUMBER */}
         <style>{`
             input[type=number]::-webkit-inner-spin-button, 
             input[type=number]::-webkit-outer-spin-button { 
-                -webkit-appearance: none; 
-                margin: 0; 
+                -webkit-appearance: none; margin: 0; 
             }
-            input[type=number] {
-                -moz-appearance: textfield;
-            }
+            input[type=number] { -moz-appearance: textfield; }
         `}</style>
 
         {/* HEADER */}
@@ -260,15 +285,24 @@ export default function Pricing({ onBack }) {
             {/* COLUNA 2: MONTAGEM */}
             <div className={`flex-1 bg-gray-50 flex-col overflow-y-auto ${mobileTab === 'recipe' ? 'flex h-full' : 'hidden md:flex h-full'}`}>
                 <div className="p-4 md:p-6 max-w-2xl mx-auto w-full space-y-6 pb-24 md:pb-6">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
-                        <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Nome do Produto</label>
+                    
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 relative">
+                        <div className="flex justify-between items-start mb-1">
+                            <label className="text-xs font-bold text-gray-400 uppercase block">Nome do Produto</label>
+                            <button onClick={handleClearCalculator} className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold flex items-center gap-1 hover:bg-gray-200 hover:text-red-500 transition-colors">
+                                <Eraser size={12}/> Limpar / Novo
+                            </button>
+                        </div>
                         <input value={recipeName} onChange={e => setRecipeName(e.target.value)} placeholder="Ex: Açaí 500ml" className="w-full text-lg font-black text-gray-800 outline-none placeholder-gray-300"/>
                     </div>
 
                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200 min-h-[300px]">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide"><Package size={16} className="text-purple-600"/> Composição</h3>
                         {items.length === 0 ? (
-                            <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-xl"><p className="text-gray-400 text-sm">Lista Vazia.</p></div>
+                            <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-xl">
+                                <p className="text-gray-400 text-sm">Lista Vazia.</p>
+                                <button onClick={() => setMobileTab('supplies')} className="md:hidden mt-2 text-purple-600 font-bold text-sm underline">Ir para Insumos</button>
+                            </div>
                         ) : (
                             <div className="space-y-2">
                                 {items.map((item, idx) => {
@@ -289,7 +323,9 @@ export default function Pricing({ onBack }) {
                         </div>
                     </div>
                     
-                    <button onClick={handleSaveRecipe} className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-xl hover:bg-black"><Save size={18}/> Salvar</button>
+                    <button onClick={handleSaveRecipe} className={`w-full text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-xl transition-colors ${recipeId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-900 hover:bg-black'}`}>
+                        {recipeId ? <><Edit3 size={18}/> Atualizar Ficha</> : <><Save size={18}/> Salvar Ficha</>}
+                    </button>
                 </div>
             </div>
 
@@ -337,7 +373,6 @@ export default function Pricing({ onBack }) {
                                 
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className="text-xs text-gray-400">Venda:</span>
-                                    {/* SE FOR LUCRO FIXO, É APENAS TEXTO. SE FOR COMPLETO, É INPUT */}
                                     {useFixedProfit ? (
                                         <span className="text-2xl font-black text-gray-800">R$ {res.suggestedPrice.toFixed(2)}</span>
                                     ) : (
@@ -377,95 +412,118 @@ export default function Pricing({ onBack }) {
         </div>
 
         {/* --- MODAIS --- */}
-        {isChannelModalOpen && <ChannelsModal channels={channels} close={() => setIsChannelModalOpen(false)} refresh={refreshData} saveData={saveData} deleteData={deleteData} />}
-        {isSupplyModalOpen && <SupplyForm data={editingSupply} close={() => setIsSupplyModalOpen(false)} save={handleSaveSupply} />}
+        {isChannelModalOpen && <ChannelsModal channels={channels} close={() => setIsChannelModalOpen(false)} refresh={refreshData} saveData={saveData} deleteData={deleteData} confirmDialog={showDialog} />}
+        {isSupplyModalOpen && <SupplyForm data={editingSupply} categories={uniqueCategories} close={() => setIsSupplyModalOpen(false)} save={handleSaveSupply} />}
         {isRecipeModalOpen && <RecipesModal recipes={recipes} channels={channels} close={() => setIsRecipeModalOpen(false)} onLoad={loadRecipe} onDelete={handleDeleteRecipe} />}
+        
+        {/* NOVO MODAL DE DIÁLOGO (GLOBAL) */}
+        {dialog.isOpen && (
+            <div className="fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl scale-100 animate-in zoom-in-95">
+                    <div className="flex flex-col items-center text-center">
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${dialog.type === 'confirm' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'}`}>
+                            {dialog.type === 'confirm' ? <AlertTriangle size={32}/> : <CheckCircle size={32}/>}
+                        </div>
+                        <h3 className="text-xl font-black text-gray-800 mb-2">{dialog.title}</h3>
+                        <p className="text-gray-500 text-sm mb-6 leading-relaxed">{dialog.message}</p>
+                        
+                        <div className="flex gap-3 w-full">
+                            {dialog.type === 'confirm' && (
+                                <button onClick={closeDialog} className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200">
+                                    Cancelar
+                                </button>
+                            )}
+                            <button onClick={handleDialogConfirm} className={`flex-1 py-3 font-bold rounded-xl text-white shadow-lg ${dialog.type === 'confirm' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' : 'bg-green-600 hover:bg-green-700 shadow-green-200'}`}>
+                                {dialog.type === 'confirm' ? 'Confirmar' : 'Entendido'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 }
 
-// 1. MODAL DE FICHAS (COM PROTEÇÃO CONTRA CRASH)
+// -----------------------------------------------------
+// SUB-COMPONENTES (MODAIS E FORMULÁRIOS)
+// -----------------------------------------------------
+
+function SupplyForm({ data, categories, close, save }) {
+    const [form, setForm] = useState(data || { name: '', price: '', amount: '', unit: 'g', category: '' });
+    
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-black uppercase">{data ? 'Editar' : 'Novo'} Insumo</h2><button onClick={close} className="bg-gray-100 p-1 rounded-full"><X size={20}/></button></div>
+                <div className="space-y-4">
+                    <div><label className="text-xs font-bold text-gray-400 uppercase">Nome</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" placeholder="Ex: Açaí 5 Litros" autoFocus /></div>
+                    <div className="flex gap-3">
+                        <div className="flex-1">
+                            <label className="text-xs font-bold text-gray-400 uppercase">Categoria</label>
+                            <input list="category-options" value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" placeholder="Ex: Frutas" />
+                            <datalist id="category-options">{categories.map(c => <option key={c} value={c} />)}</datalist>
+                        </div>
+                        <div className="w-1/3"><label className="text-xs font-bold text-gray-400 uppercase">Unid.</label><select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold bg-white outline-none"><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div>
+                    </div>
+                    <div className="flex gap-3"><div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Preço (R$)</label><input type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" /></div><div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Qtd Emb.</label><input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" /></div></div>
+                </div>
+                <button onClick={() => save({...form, price: parseFloat(form.price), amount: parseFloat(form.amount)})} className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold mt-6 shadow-lg shadow-green-200">Salvar Insumo</button>
+            </div>
+        </div>
+    )
+}
+
 function RecipesModal({ recipes, channels, close, onLoad, onDelete }) {
     const [search, setSearch] = useState('');
     const filtered = recipes.filter(r => r.name.toLowerCase().includes(search.toLowerCase()));
 
     const getRecipeSnapshot = (recipe) => {
         let cmv = 0;
-        recipe.ingredients?.forEach(i => {
-            cmv += (i.price / i.amount) * i.usedAmount;
-        });
-
-        // Proteção: se canais ainda não carregaram, retorna básico
+        recipe.ingredients?.forEach(i => { cmv += (i.price / i.amount) * i.usedAmount; });
+        
+        // Proteção contra crash se channels estiver vazio ou carregando
         if (!channels || channels.length === 0) return { cmv, priceBalcao: 0, priceIfood: 0 };
-
-        const baseChannel = channels.find(c => 
-            c.name.toLowerCase().includes('balcão') || 
-            c.name.toLowerCase().includes('balcao') || 
-            c.name.toLowerCase().includes('propria') || 
-            c.name.toLowerCase().includes('própria')
-        ) || channels[0];
-
-        // Proteção extra
+        
+        const baseChannel = channels.find(c => c.name.toLowerCase().includes('balcão') || c.name.toLowerCase().includes('balcao') || c.name.toLowerCase().includes('propria') || c.name.toLowerCase().includes('própria')) || channels[0];
+        
         if (!baseChannel) return { cmv, priceBalcao: 0, priceIfood: 0 };
 
         const opCost = recipe.operational_percent || 30; 
         const profit = recipe.profit_percent || 20;
         const baseTotalVars = parseFloat(baseChannel.commission_percent) + parseFloat(baseChannel.payment_fee_percent) + parseFloat(opCost) + parseFloat(profit);
         const baseTotalFixed = cmv + parseFloat(baseChannel.fixed_fee);
-        const baseDivisor = 1 - (Math.min(baseTotalVars, 95) / 100);
+        
+        // Evita divisão por zero ou negativo
+        const baseDivisor = Math.max(0.01, 1 - (Math.min(baseTotalVars, 95) / 100));
         const basePrice = baseTotalFixed / baseDivisor;
         const targetProfitMoney = basePrice * (profit / 100);
 
         const calcPrice = (searchName) => {
             const channel = channels.find(c => c.name.toLowerCase().includes(searchName));
             if (!channel) return 0;
-            
             if (channel.id === baseChannel.id) return basePrice;
-
             const variableTaxPercent = parseFloat(channel.commission_percent) + parseFloat(channel.payment_fee_percent) + parseFloat(opCost);
             const numerator = cmv + parseFloat(channel.fixed_fee) + targetProfitMoney;
-            const divisor = 1 - (Math.min(variableTaxPercent, 95) / 100);
-            
+            const divisor = Math.max(0.01, 1 - (Math.min(variableTaxPercent, 95) / 100));
             return numerator / divisor;
         };
 
-        return {
-            cmv,
-            priceBalcao: calcPrice('balcão') || calcPrice('balcao') || calcPrice('propria'),
-            priceIfood: calcPrice('ifood')
-        };
+        return { cmv, priceBalcao: calcPrice('balcão') || calcPrice('balcao') || calcPrice('propria'), priceIfood: calcPrice('ifood') };
     };
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white w-full max-w-2xl rounded-3xl p-6 shadow-2xl h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-black uppercase">Fichas Técnicas</h2>
-                    <button onClick={close} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button>
-                </div>
-                
-                <div className="mb-4 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
-                    <input value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none focus:border-purple-200" placeholder="Pesquisar ficha..."/>
-                </div>
-
+                <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-black uppercase">Fichas Técnicas</h2><button onClick={close} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button></div>
+                <div className="mb-4 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/><input value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 p-3 bg-gray-50 rounded-xl border border-gray-100 outline-none focus:border-purple-200" placeholder="Pesquisar ficha..."/></div>
                 <div className="flex-1 overflow-y-auto space-y-3">
                     {filtered.map(r => {
                         const snap = getRecipeSnapshot(r);
                         return (
                             <div key={r.id} className="flex justify-between items-center bg-white p-4 border border-gray-100 rounded-2xl hover:border-purple-200 hover:shadow-sm transition-all">
-                                <div>
-                                    <h3 className="font-bold text-gray-800 text-lg">{r.name}</h3>
-                                    <p className="text-xs text-gray-400 mt-1 flex flex-wrap gap-x-2">
-                                        <span>{r.ingredients?.length || 0} itens</span><span>•</span><span>Lucro: <span className="text-green-600 font-bold">{r.profit_percent}%</span></span><span>•</span><span>CMV: R$ {snap.cmv.toFixed(2)}</span>
-                                        {snap.priceBalcao > 0 && (<><span>•</span><span>Balcão: <strong className="text-gray-600">R$ {snap.priceBalcao.toFixed(2)}</strong></span></>)}
-                                        {snap.priceIfood > 0 && (<><span>•</span><span>iFood: <strong className="text-gray-600">R$ {snap.priceIfood.toFixed(2)}</strong></span></>)}
-                                    </p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => onLoad(r)} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs hover:bg-blue-100 flex items-center gap-2"><Upload size={14}/> Abrir</button>
-                                    <button onClick={() => onDelete(r.id)} className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100"><Trash2 size={16}/></button>
-                                </div>
+                                <div><h3 className="font-bold text-gray-800 text-lg">{r.name}</h3><p className="text-xs text-gray-400 mt-1 flex flex-wrap gap-x-2"><span>{r.ingredients?.length || 0} itens</span><span>•</span><span>Lucro: <span className="text-green-600 font-bold">{r.profit_percent}%</span></span><span>•</span><span>CMV: R$ {snap.cmv.toFixed(2)}</span>{snap.priceBalcao > 0 && (<><span>•</span><span>Balcão: <strong className="text-gray-600">R$ {snap.priceBalcao.toFixed(2)}</strong></span></>)}{snap.priceIfood > 0 && (<><span>•</span><span>iFood: <strong className="text-gray-600">R$ {snap.priceIfood.toFixed(2)}</strong></span></>)}</p></div>
+                                <div className="flex gap-2"><button onClick={() => onLoad(r)} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs hover:bg-blue-100 flex items-center gap-2"><Upload size={14}/> Abrir</button><button onClick={() => onDelete(r.id)} className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100"><Trash2 size={16}/></button></div>
                             </div>
                         )
                     })}
@@ -476,30 +534,20 @@ function RecipesModal({ recipes, channels, close, onLoad, onDelete }) {
     )
 }
 
-function SupplyForm({ data, close, save }) {
-    const [form, setForm] = useState(data || { name: '', price: '', amount: '', unit: 'g', category: 'Geral' });
-    return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-black uppercase">{data ? 'Editar' : 'Novo'} Insumo</h2><button onClick={close} className="bg-gray-100 p-1 rounded-full"><X size={20}/></button></div>
-                <div className="space-y-4">
-                    <div><label className="text-xs font-bold text-gray-400 uppercase">Nome</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" placeholder="Ex: Açaí 5 Litros" autoFocus /></div>
-                    <div className="flex gap-3"><div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Categoria</label><input value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" placeholder="Ex: Frutas" /></div><div className="w-1/3"><label className="text-xs font-bold text-gray-400 uppercase">Unid.</label><select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold bg-white outline-none"><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div></div>
-                    <div className="flex gap-3"><div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Preço (R$)</label><input type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" /></div><div className="flex-1"><label className="text-xs font-bold text-gray-400 uppercase">Qtd Emb.</label><input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 font-bold outline-none focus:border-purple-300" /></div></div>
-                </div>
-                <button onClick={() => save({...form, price: parseFloat(form.price), amount: parseFloat(form.amount)})} className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold mt-6 shadow-lg shadow-green-200">Salvar Insumo</button>
-            </div>
-        </div>
-    )
-}
-
-function ChannelsModal({ channels, close, refresh, saveData, deleteData }) {
+function ChannelsModal({ channels, close, refresh, saveData, deleteData, confirmDialog }) {
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState({});
     const handleEdit = (c) => { setEditingId(c.id); setForm(c); };
     const handleNew = () => { setEditingId('new'); setForm({ name: '', commission_percent: 0, payment_fee_percent: 0, fixed_fee: 0, color: 'bg-gray-200' }); };
     const handleSave = async () => { const payload = { ...form }; if (editingId === 'new') delete payload.id; await saveData('sales_channels', payload); await refresh(); setEditingId(null); };
-    const handleDelete = async (id) => { if(window.confirm("Apagar?")) { await deleteData('sales_channels', id); await refresh(); } }
+    const handleDelete = (id) => { 
+        if (confirmDialog) {
+            confirmDialog('confirm', 'Excluir Canal?', 'Tem certeza que deseja apagar essa plataforma?', async () => {
+                await deleteData('sales_channels', id);
+                await refresh();
+            });
+        }
+    }
     
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
